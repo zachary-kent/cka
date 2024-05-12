@@ -1,12 +1,9 @@
 (** The grammar of series-rational expressions *)
-type 'a t =
+type t =
   | Zero
   | One
-  | Sym of 'a
-  | Seq of 'a t * 'a t
-  | Par of 'a t * 'a t
-  | Alt of 'a t * 'a t
-  | Star of 'a t
-
-val ewp : 'a t -> bool
-(** [ewp e] is [true] iff [e] contains [1] *)
+  | Sym of char
+  | Seq of t * t
+  | Par of t * t
+  | Alt of t * t
+  | Star of t
