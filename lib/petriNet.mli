@@ -2,10 +2,11 @@ open Core
 module Place = Int
 
 module Transition : sig
-  (** A Petri-Net transition is either silent (and labeled with tau), or visible and labeled with a character *)
-  type label = Visible of char | Silent
+  type t =
+    | Silent of Place.Set.t * Place.Set.t
+    | Visible of Place.t * char * Place.t
+  [@@deriving sexp, compare]
 
-  type t = Place.Set.t * label * Place.Set.t
   (** Represent a transition as a triple consisting of the pre-set of a transition, its label, and the post set.
       A transition is enabled if every place in its preset has a token on it *)
 end

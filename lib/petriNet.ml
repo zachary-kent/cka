@@ -2,8 +2,10 @@ open Core
 module Place = Int
 
 module Transition = struct
-  type label = Visible of char | Silent
-  type t = Place.Set.t * label * Place.Set.t
+  type t =
+    | Silent of Place.Set.t * Place.Set.t
+    | Visible of Place.t * char * Place.t
+  [@@deriving sexp, compare]
 end
 
 (* A Petri net with labeled transitions *)
@@ -51,8 +53,7 @@ let of_expr =
         let final_place = fresh () in
         {
           places = of_list [ initial_place; final_place ];
-          transitions =
-            [ (singleton initial_place, Visible a, singleton final_place) ];
+          transitions = [ Visible (initial_place, a, final_place) ];
           initial_place;
           final_place;
         }
@@ -64,10 +65,10 @@ let of_expr =
         let transitions =
           n1.transitions @ n2.transitions
           @ [
-              (singleton initial_place, Silent, singleton n1.initial_place);
-              (singleton initial_place, Silent, singleton n2.initial_place);
-              (singleton n1.final_place, Silent, singleton final_place);
-              (singleton n2.final_place, Silent, singleton final_place);
+              Silent (singleton initial_place, singleton n1.initial_place);
+              Silent (singleton initial_place, singleton n2.initial_place);
+              Silent (singleton n1.final_place, singleton final_place);
+              Silent (singleton n2.final_place, singleton final_place);
             ]
         in
         let places =
@@ -83,12 +84,12 @@ let of_expr =
         let transitions =
           n1.transitions @ n2.transitions
           @ [
-              ( singleton initial_place,
-                Silent,
-                of_list [ n1.initial_place; n2.initial_place ] );
-              ( of_list [ n1.final_place; n2.final_place ],
-                Silent,
-                singleton final_place );
+              Silent
+                ( singleton initial_place,
+                  of_list [ n1.initial_place; n2.initial_place ] );
+              Silent
+                ( of_list [ n1.final_place; n2.final_place ],
+                  singleton final_place );
             ]
         in
         let places =
@@ -104,7 +105,7 @@ let of_expr =
           initial_place = n1.initial_place;
           final_place = n2.final_place;
           transitions =
-            (singleton n1.final_place, Silent, singleton n2.initial_place)
+            Silent (singleton n1.final_place, singleton n2.initial_place)
             :: n1.transitions
             @ n2.transitions;
         }
@@ -115,10 +116,10 @@ let of_expr =
         let transitions =
           n.transitions
           @ [
-              (singleton initial_place, Silent, singleton n.initial_place);
-              (singleton initial_place, Silent, singleton final_place);
-              (singleton n.final_place, Silent, singleton n.initial_place);
-              (singleton n.final_place, Silent, singleton final_place);
+              Silent (singleton initial_place, singleton n.initial_place);
+              Silent (singleton initial_place, singleton final_place);
+              Silent (singleton n.final_place, singleton n.initial_place);
+              Silent (singleton n.final_place, singleton final_place);
             ]
         in
         {
