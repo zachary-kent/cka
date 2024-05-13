@@ -130,3 +130,11 @@ let of_expr =
         }
   in
   aux
+
+let partition_transitions { transitions; _ } =
+  List.partition_map transitions ~f:(function
+    | Silent (pre, post) -> First (pre, post)
+    | Visible (pre, sym, post) -> Second (pre, sym, post))
+
+let silent_transitions = Fn.compose fst partition_transitions
+let visible_transitions = Fn.compose snd partition_transitions

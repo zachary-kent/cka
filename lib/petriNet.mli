@@ -24,3 +24,9 @@ type configuration = Place.Set.t
 
 val of_expr : SeriesRational.t -> t
 (** [of_expr e] is a Petri net whose pomset language is equivalent to that of [e]x *)
+
+val silent_transitions : t -> (Place.Set.t * Place.Set.t) list
+(** [silent_transitions net] is the list of all of the silent transitions of [net] *)
+
+val visible_transitions : t -> (Place.t * char * Place.t) list
+(** [visible_transitions net] is the list of all of the visible transitions of [net] *)
