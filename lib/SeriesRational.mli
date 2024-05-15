@@ -7,3 +7,4 @@ type t =
   | Par of t * t
   | Alt of t * t
   | Star of t
+  [@@deriving sexp, quickcheck]

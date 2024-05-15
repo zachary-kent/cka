@@ -1,4 +1,4 @@
 (executable
  (public_name cka)
  (name main)
- (libraries cka))
+ (libraries cka core))
