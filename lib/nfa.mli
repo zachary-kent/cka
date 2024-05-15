@@ -52,13 +52,3 @@ module Inclusion (A : S) (B : S with module Alphabet = A.Alphabet) : sig
   val inclusion : A.t -> B.t -> bool
   (** [inclusion n1 n2] is [true] iff the langauge recognized by [n1] is a subset of the language recognized by [n2] *)
 end
-
-module Relation : Set.S with type Elt.t = PetriNet.Place.t * PetriNet.Place.t
-
-module Composite :
-  S
-    with type State.t = PetriNet.Place.Set.t * PetriNet.Place.Set.t * Relation.t
-     and type Alphabet.t = PetriNet.Transition.t
-
-val composite : PetriNet.t -> PetriNet.t -> Composite.t
-(** [composite n1 n2] is the composite automata formed from Petri nets [n1] and [n2] *)
