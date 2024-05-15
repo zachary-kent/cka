@@ -1,2 +1,3 @@
 (test
- (name cka))
+ (name cka)
+ (libraries ounit2 cka))
