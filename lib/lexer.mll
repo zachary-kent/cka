@@ -11,7 +11,6 @@ rule read =
   | whitespace { read lexbuf }
   | letter { CHAR (Lexing.lexeme_char lexbuf 0) }
   | "+" { ALT }
-  | ";" { SEQ }
   | "||" { PAR }
   | "*" { STAR }
   | "0" { ZERO }
