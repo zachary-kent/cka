@@ -266,3 +266,48 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
   !composite
 
 
+  module TransitionAutomaton =
+    Make
+      (PetriNet.Place.Set)
+      (struct
+        type t = PetriNet.Transition.t
+        [@@deriving compare, sexp]
+      end)
+
+let transition (n : PetriNet.t) =
+  let open PetriNet in
+  let open Transition in
+  let worklist = Queue.singleton @@ Place.Set.singleton n.initial_place in
+  let start = Place.Set.singleton n.initial_place in
+  let final = Set.equal @@ Place.Set.singleton n.final_place in
+  let alphabet = n.transitions in
+  let nfa = TransitionAutomaton.create ~alphabet ~start ~final in
+  let rec loop nfa =
+    match Queue.dequeue worklist with
+    | None -> nfa
+    | Some c ->
+      if TransitionAutomaton.has_state nfa c then 
+        (* If this state is already present in the automaton, then it has been processed *)
+        loop nfa
+      else
+        loop @@ 
+          List.fold n.transitions ~init:nfa ~f:begin
+            fun nfa ->
+              function
+              | Silent (pre, post) as transition ->
+                  if Set.is_subset pre ~of_:c then
+                    (* If pre set is a subset of the configuration, the transition is active *)
+                    let c' = Set.(union (diff c pre) post) in
+                    Queue.enqueue worklist c';
+                    TransitionAutomaton.add_transition nfa c (Some transition) c'
+                  else nfa
+              | Visible (pre, a, post) as transition ->
+                if Set.mem c pre then
+                  (* If pre set is a subset of the configuration, the transition is active *)
+                  let c' = Set.(add (remove c pre) post) in
+                  Queue.enqueue worklist c';
+                  TransitionAutomaton.add_transition nfa c (Some transition) c'
+                else nfa
+          end
+    in
+    loop nfa
