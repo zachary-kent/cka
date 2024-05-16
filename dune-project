@@ -20,6 +20,6 @@
  (synopsis "CKA Decision Procedure")
  (description
   "A decision procedure for the refinement of series-rational expressions")
- (depends ocaml dune menhir core))
+ (depends ocaml dune menhir core ounit2))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
