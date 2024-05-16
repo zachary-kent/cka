@@ -38,15 +38,15 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
     && Set.equal c2 (Place.Set.singleton n2.final_place)
   in
   let composite = ref @@ Composite.create ~alphabet ~start ~final in
-  let count = ref 0 in
+  (* let count = ref 0 in *)
   let rec loop () =
     match Queue.dequeue worklist with
     | None -> ()
     | Some ((c1, c2, r) as state) ->
         if not (Composite.has_state !composite state) then begin
-          incr count;
+          (* incr count;
           if !count mod 2 = 0 then
-            printf "%d states\n" !count;
+            printf "%d states\n" !count; *)
           List.iter silent_transitions_n1 ~f:begin 
             fun (pre, post) ->
               if Set.is_subset pre ~of_:c1 then begin
