@@ -24,7 +24,7 @@ let () =
   run_test_tt_main
     ("CKA test suite"
     >::: [
-           equal_test "a** = a*" "a*" "a**";
+           equal_test "double star elimination" "a*" "a**";
            equal_test "associativity of par" "a || (b || c)" "(a || b) || c";
            equal_test "commutativity of par" "a || b" "b || a";
            equal_test "1 is identity of par" "a || 1" "a";
@@ -40,9 +40,10 @@ let () =
            equal_test "0 left annihilates over sequence" "0 a" "0";
            equal_test "0 right annihilates over sequence" "a 0" "0";
            equal_test "left distributivity of sequence over +" "a(b + c)"
-             "(ab) + (ac)";
+             "ab + ac";
            equal_test "right distributivity of sequence over +" "(a + b)c"
-             "(ac) + (bc)";
-           (* equal_test "(a + b)* = a*(ba*)*" "(a + b)*" "a*; (ba*)*" true; *)
+             "ac + bc";
+           (* equal_test "*-unfolding" "a*" "1 + aa*"; *)
+           (* equal_test "denesting" "(a + b)*" "a*(ba*)*"; *)
            refines_test "exchange law" exchange_lhs exchange_rhs;
          ])
