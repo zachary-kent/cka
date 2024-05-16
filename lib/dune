@@ -1,11 +1,10 @@
 (library
  (name cka)
- (libraries core bag)
+ (libraries core)
  (preprocess
   (pps ppx_jane)))
 
 (ocamllex lexer)
 
 (menhir
- (modules parser)
- (flags --explain --dump --cmly))
+ (modules parser))
