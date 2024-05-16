@@ -7,22 +7,19 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github zachary-kent/cka))
 
-(authors "Author Name")
+(authors "Zak Kent")
 
-(maintainers "Maintainer Name")
+(maintainers "Zak Kent")
 
-(license LICENSE)
-
-(documentation https://url/to/documentation)
+(license MIT)
 
 (package
  (name cka)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
- (tags
-  (topics "to describe" your project)))
+ (synopsis "CKA Decision Procedure")
+ (description
+  "A decision procedure for the refinement of series-rational expressions")
+ (depends ocaml dune menhir core))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
