@@ -12,26 +12,28 @@
 %token RPAREN
 %token EOF
 
-%left ALT
-%left PAR
-%nonassoc STAR
-
 %start <SeriesRational.t> expr
 
 %%
 
 expr:
-  | e = seq; EOF { e }
+  | e = alt_expr; EOF { e }
 
-seq:
-  | s = seq; t = sr { Seq (s, t) }
-  | e  = sr { e }
+alt_expr:
+  | s = alt_expr; ALT; t = par_expr { Alt (s, t) }
+  | e = par_expr { e }
 
-sr:
-  | s = sr; ALT; t = sr { Alt (s, t) }
-  | s = sr; PAR; t = sr { Par (s, t) }
-  | e = sr; STAR { Star e }
+par_expr:
+  | s = par_expr; PAR; t = seq_expr { Par (s, t) }
+  | e = seq_expr { e }
+
+seq_expr:
+  | s = seq_expr; t = base_expr { Seq (s, t) }
+  | e  = base_expr { e }
+
+base_expr:
+  | e = base_expr; STAR { Star e }
   | c = CHAR { Sym c }
   | ZERO { Zero }
   | ONE { One }
-  | LPAREN; e = seq; RPAREN { e }
+  | LPAREN; e = alt_expr; RPAREN { e }

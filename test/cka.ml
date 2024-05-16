@@ -18,7 +18,7 @@ let refines_test ?(expected = true) name s t =
   assert_equal expected (Refinement.refines s t)
 
 let exchange_lhs = "(a || b) (c || d)"
-let exchange_rhs = "(bc) || (ad)"
+let exchange_rhs = "bc || ad"
 
 let () =
   run_test_tt_main
