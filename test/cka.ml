@@ -24,7 +24,7 @@ let () =
   run_test_tt_main
     ("CKA test suite"
     >::: [
-           (* equal_test "a** = a*" "a*" "a**" true; *)
+           equal_test "a** = a*" "a*" "a**";
            equal_test "associativity of par" "a || (b || c)" "(a || b) || c";
            equal_test "commutativity of par" "a || b" "b || a";
            equal_test "1 is identity of par" "a || 1" "a";

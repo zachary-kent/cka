@@ -1,22 +1,27 @@
 open Core
 module Place = Int
 
+module Places = struct
+  include Place.Set
+
+  let hash_fold_t = Set.hash_fold_direct Place.hash_fold_t
+  let hash = Hash.of_fold hash_fold_t
+end
+
 module Transition = struct
-  type t =
-    | Silent of Place.Set.t * Place.Set.t
-    | Visible of Place.t * char * Place.t
-  [@@deriving sexp, compare]
+  type t = Silent of Places.t * Places.t | Visible of Place.t * char * Place.t
+  [@@deriving sexp, compare, hash]
 end
 
 (* A Petri net with labeled transitions *)
 type t = {
-  places : Place.Set.t;
+  places : Places.t;
   transitions : Transition.t list;
   initial_place : Place.t;
   final_place : Place.t;
 }
 
-type configuration = Place.Set.t
+type configuration = Places.t
 (** A configuration is a set of places; those that have a token on them in a Petri net *)
 
 let of_expr =
@@ -26,7 +31,7 @@ let of_expr =
       incr count;
       !count
   in
-  let open Place.Set in
+  let open Places in
   let rec aux =
     let open SeriesRational in
     let open Transition in

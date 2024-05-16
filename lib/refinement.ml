@@ -1,18 +1,23 @@
 open! Core
 
-module Relation = Set.Make (struct
-  type t = PetriNet.Place.t * PetriNet.Place.t [@@deriving compare, sexp]
-end)
+module Relation = struct
+  module Pair = struct
+    type t = PetriNet.Place.t * PetriNet.Place.t
+    [@@deriving compare, sexp, hash]
+  end
+
+  include Set.Make (Pair)
+
+  let hash_fold_t : t Hash.folder = Set.hash_fold_direct Pair.hash_fold_t
+end
 
 module Composite =
   Nfa.Make
     (struct
-      type t = PetriNet.Place.Set.t * PetriNet.Place.Set.t * Relation.t
-      [@@deriving compare, sexp]
+      type t = PetriNet.Places.t * PetriNet.Places.t * Relation.t [@@deriving compare, hash, sexp]
     end)
     (struct
-      type t = PetriNet.Transition.t
-      [@@deriving compare, sexp]
+      type t = PetriNet.Transition.t [@@deriving compare, hash, sexp]
     end)
 
 let matching_visible_transitions (n1 : PetriNet.t) (n2 : PetriNet.t) =
@@ -27,23 +32,23 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
   let silent_transitions_n2 = silent_transitions n2 in
   let matching_visible_transitions = matching_visible_transitions n1 n2 in
   let start =
-    ( Place.Set.singleton n1.initial_place,
-      Place.Set.singleton n2.initial_place,
+    ( Places.singleton n1.initial_place,
+      Places.singleton n2.initial_place,
       Relation.singleton (n1.initial_place, n2.initial_place) )
   in
   let worklist = Queue.singleton start in
   let alphabet = n1.transitions in
   let final (c1, c2, _) =
-    Set.equal c1 (Place.Set.singleton n1.final_place)
-    && Set.equal c2 (Place.Set.singleton n2.final_place)
+    Set.equal c1 (Places.singleton n1.final_place)
+    && Set.equal c2 (Places.singleton n2.final_place)
   in
-  let composite = ref @@ Composite.create ~alphabet ~start ~final in
+  let composite = Composite.create ~alphabet ~start ~final in
   (* let count = ref 0 in *)
   let rec loop () =
     match Queue.dequeue worklist with
     | None -> ()
     | Some ((c1, c2, r) as state) ->
-        if not (Composite.has_state !composite state) then begin
+        if not (Composite.has_state composite state) then begin
           (* incr count;
           if !count mod 2 = 0 then
             printf "%d states\n" !count; *)
@@ -63,7 +68,7 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
                 end;
                 let state' = (c1', c2, !r') in
                 let transition = Transition.Silent (pre, post) in
-                composite := Composite.add_transition !composite state (Some transition) state';
+                Composite.add_transition composite state (Some transition) state';
                 Queue.enqueue worklist state'
               end
           end;
@@ -81,7 +86,7 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
                     if Set.mem pre q then begin
                       Hashtbl.update map p ~f:begin
                         function
-                        | None -> Place.Set.singleton q
+                        | None -> Places.singleton q
                         | Some places -> Set.add places q
                       end
                     end
@@ -93,7 +98,7 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
                     end
                 end;
                 let state' = (c1, c2', !r') in
-                composite := Composite.add_transition !composite state None state';
+                Composite.add_transition composite state None state';
                 Queue.enqueue worklist state'
               end
           end;
@@ -114,7 +119,7 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
                 end;
                 let state' = (c1', c2', !r') in
                 let transition = Transition.Visible (p0, a, p1) in
-                composite := Composite.add_transition !composite state (Some transition) state';
+                Composite.add_transition composite state (Some transition) state';
                 Queue.enqueue worklist state'
               end
           end
@@ -122,54 +127,49 @@ let composite (n1 : PetriNet.t) (n2 : PetriNet.t) =
         loop ()
   in
   loop ();
-  !composite
+  composite
 
 
 module TransitionAutomaton =
   Nfa.Make
-    (PetriNet.Place.Set)
-    (struct
-      type t = PetriNet.Transition.t
-      [@@deriving compare, sexp]
-    end)
+    (PetriNet.Places)
+    (PetriNet.Transition)
 
 let transition (n : PetriNet.t) =
   let open PetriNet in
   let open Transition in
-  let worklist = Queue.singleton @@ Place.Set.singleton n.initial_place in
-  let start = Place.Set.singleton n.initial_place in
-  let final = Set.equal @@ Place.Set.singleton n.final_place in
+  let worklist = Queue.singleton @@ Places.singleton n.initial_place in
+  let start = Places.singleton n.initial_place in
+  let final = Set.equal @@ Places.singleton n.final_place in
   let alphabet = n.transitions in
   let nfa = TransitionAutomaton.create ~alphabet ~start ~final in
-  let rec loop nfa =
+  let rec loop () =
     match Queue.dequeue worklist with
-    | None -> nfa
+    | None -> ()
     | Some c ->
-      if TransitionAutomaton.has_state nfa c then 
-        (* If this state is already present in the automaton, then it has been processed *)
-        loop nfa
-      else
-        loop @@ 
-          List.fold n.transitions ~init:nfa ~f:begin
-            fun nfa ->
-              function
-              | Silent (pre, post) as transition ->
-                  if Set.is_subset pre ~of_:c then
-                    (* If pre set is a subset of the configuration, the transition is active *)
-                    let c' = Set.(union (diff c pre) post) in
-                    Queue.enqueue worklist c';
-                    TransitionAutomaton.add_transition nfa c (Some transition) c'
-                  else nfa
-              | Visible (pre, a, post) as transition ->
-                if Set.mem c pre then
-                  (* If pre set is a subset of the configuration, the transition is active *)
-                  let c' = Set.(add (remove c pre) post) in
-                  Queue.enqueue worklist c';
-                  TransitionAutomaton.add_transition nfa c (Some transition) c'
-                else nfa
-          end
+      if not @@ TransitionAutomaton.has_state nfa c then begin
+        List.iter n.transitions ~f:begin
+          function
+          | Silent (pre, post) as transition ->
+              if Set.is_subset pre ~of_:c then begin
+                (* If pre set is a subset of the configuration, the transition is active *)
+                let c' = Set.(union (diff c pre) post) in
+                Queue.enqueue worklist c';
+                TransitionAutomaton.add_transition nfa c (Some transition) c'
+              end
+          | Visible (pre, a, post) as transition ->
+              if Set.mem c pre then begin
+                (* If pre set is a subset of the configuration, the transition is active *)
+                let c' = Set.(add (remove c pre) post) in
+                Queue.enqueue worklist c';
+                TransitionAutomaton.add_transition nfa c (Some transition) c'
+              end
+        end
+      end;
+      loop ()
   in
-  loop nfa
+  loop ();
+  nfa
 
 module Inclusion = Nfa.Inclusion (TransitionAutomaton) (Composite)
 

@@ -1,10 +1,10 @@
 open Core
 
 module type S = sig
-  module State : Map.Key
+  module State : Hashtbl.Key
   (** The abstract state of an NFA *)
 
-  module Alphabet : Map.Key
+  module Alphabet : Hashtbl.Key
   (** The abstract alphabet of an NFA *)
 
   module States : Set.S with type Elt.t = State.t
@@ -13,7 +13,7 @@ module type S = sig
   type t
   (** An NFA with epsilon transitions *)
 
-  val add_transition : t -> State.t -> Alphabet.t option -> State.t -> t
+  val add_transition : t -> State.t -> Alphabet.t option -> State.t -> unit
   (** [add_transition nfa src label dst] is [nfa] with an additional labeled transition from [src] to [dst] labeled [label] *)
 
   val create :
@@ -45,7 +45,7 @@ module type S = sig
   (** [has_state nfa state] is [true] iff [nfa] has state [state] *)
 end
 
-module Make (State : Map.Key) (Alphabet : Map.Key) :
+module Make (State : Hashtbl.Key) (Alphabet : Hashtbl.Key) :
   S with module State = State and module Alphabet = Alphabet
 
 module Inclusion (A : S) (B : S with module Alphabet = A.Alphabet) : sig
