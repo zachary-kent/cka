@@ -44,6 +44,5 @@ let () =
            equal_test "right distributivity of sequence over +" "(a + b)c"
              "ac + bc";
            equal_test "*-unfolding" "a*" "1 + aa*";
-           (* equal_test "denesting" "(a + b)*" "a*(ba*)*"; *)
            refines_test "exchange law" exchange_lhs exchange_rhs;
          ])

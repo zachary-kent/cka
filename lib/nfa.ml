@@ -100,27 +100,21 @@ module Inclusion (A : S) (B : S with module Alphabet = A.Alphabet) = struct
     type t = A.State.t * B.States.t [@@deriving compare, sexp_of]
   end)
 
-  let ( <= ) (x, y) (x', y') =
-    A.State.compare x x' = 0 && Set.is_subset y ~of_:y'
-
   let inclusion nfa1 nfa2 =
     let pairs x y = List.cartesian_product (Set.to_list x) [ y ] in
-    let insert_pair ac p =
-      if List.exists ~f:(fun p' -> p' <= p) ac then ac
-      else p :: List.filter ~f:(fun p' -> not (p <= p')) ac
-    in
-    let insert_pairs ac pairs = List.fold ~init:ac ~f:insert_pair pairs in
-    let rec loop = function
+    let rec loop r = function
       | [] -> true
-      | (x, y) :: ac ->
-          if A.final nfa1 x && (not @@ B.final_many nfa2 y) then false
+      | ((x, y) as p) :: todo ->
+          if Set.mem r p (* if x already related to r, skip *) then loop r todo
+          else if A.final nfa1 x && (not @@ B.final_many nfa2 y) then false
           else
-            nfa1 |> A.alphabet
-            |> List.concat_map ~f:(fun a ->
-                   pairs (A.delta nfa1 x a) (B.delta_many nfa2 y a))
-            |> insert_pairs ac |> loop
+            let todo' =
+              List.concat_map (A.alphabet nfa1) (fun a ->
+                  pairs (A.delta nfa1 x a) (B.delta_many nfa2 y a))
+            in
+            loop (Set.add r p) @@ List.rev_append todo' todo
     in
-    loop @@ insert_pairs []
+    loop Relation.empty
     @@ pairs
          (A.epsilon_closure nfa1 @@ A.start nfa1)
          (B.epsilon_closure nfa2 @@ B.start nfa2)
