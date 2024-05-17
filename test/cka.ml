@@ -45,4 +45,5 @@ let () =
              "ac + bc";
            equal_test "*-unfolding" "a*" "1 + aa*";
            refines_test "exchange law" exchange_lhs exchange_rhs;
+           (* equal_test "denesting" "(a + b)*" "a*(ba*)*" *)
          ])
