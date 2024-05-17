@@ -110,7 +110,9 @@ module Inclusion (A : S) (B : S with module Alphabet = A.Alphabet) = struct
           else
             let todo' =
               List.concat_map (A.alphabet nfa1) (fun a ->
-                  pairs (A.delta nfa1 x a) (B.delta_many nfa2 y a))
+                  pairs
+                    (A.epsilon_closure_many nfa1 @@ A.delta nfa1 x a)
+                    (B.delta_many nfa2 y a))
             in
             loop (Set.add r p) @@ List.rev_append todo' todo
     in
