@@ -16,6 +16,7 @@ module type S = sig
   val alphabet : t -> Alphabet.t list
   val final : t -> State.t -> bool
   val final_many : t -> States.t -> bool
+  val delta : t -> State.t -> Alphabet.t -> States.t
   val delta_many : t -> States.t -> Alphabet.t -> States.t
   val epsilon_closure_many : t -> States.t -> States.t
   val epsilon_closure : t -> State.t -> States.t
@@ -63,7 +64,7 @@ module Make (State : Hashtbl.Key) (Alphabet : Hashtbl.Key) = struct
     @@
     let open Option.Let_syntax in
     let%bind transitions = Hashtbl.find transitions state in
-    Hashtbl.find transitions a
+    Hashtbl.find transitions (Some a)
 
   let has_state { transitions; _ } = Hashtbl.mem transitions
 
@@ -90,34 +91,37 @@ module Make (State : Hashtbl.Key) (Alphabet : Hashtbl.Key) = struct
 
   let delta_many nfa ps a =
     ps |> Set.to_list
-    |> List.map ~f:(fun p -> delta nfa p (Some a))
+    |> List.map ~f:(fun p -> delta nfa p a)
     |> States.union_list |> epsilon_closure_many nfa
 end
 
 module Inclusion (A : S) (B : S with module Alphabet = A.Alphabet) = struct
   module Relation = Set.Make_plain (struct
-    type t = A.States.t * B.States.t [@@deriving compare, sexp_of]
+    type t = A.State.t * B.States.t [@@deriving compare, sexp_of]
   end)
 
+  let ( <= ) (x, y) (x', y') =
+    A.State.compare x x' = 0 && Set.is_subset y ~of_:y'
+
   let inclusion nfa1 nfa2 =
-    let rec loop r = function
+    let pairs x y = List.cartesian_product (Set.to_list x) [ y ] in
+    let insert_pair ac p =
+      if List.exists ~f:(fun p' -> p' <= p) ac then ac
+      else p :: List.filter ~f:(fun p' -> not (p <= p')) ac
+    in
+    let insert_pairs ac pairs = List.fold ~init:ac ~f:insert_pair pairs in
+    let rec loop = function
       | [] -> true
-      | ((x, y) as p) :: todo ->
-          if Set.mem r p (* if x already related to r, skip *) then loop r todo
-          else if A.final_many nfa1 x && (not @@ B.final_many nfa2 y) then false
+      | (x, y) :: ac ->
+          if A.final nfa1 x && (not @@ B.final_many nfa2 y) then false
           else
-            let r' = Set.add r p in
-            let todo' =
-              List.rev_map (A.alphabet nfa1) (fun a ->
-                  (A.delta_many nfa1 x a, B.delta_many nfa2 y a))
-            in
-            loop r' @@ List.rev_append todo todo'
+            nfa1 |> A.alphabet
+            |> List.concat_map ~f:(fun a ->
+                   pairs (A.delta nfa1 x a) (B.delta_many nfa2 y a))
+            |> insert_pairs ac |> loop
     in
-    let todo =
-      [
-        ( A.epsilon_closure nfa1 @@ A.start nfa1,
-          B.epsilon_closure nfa2 @@ B.start nfa2 );
-      ]
-    in
-    loop Relation.empty todo
+    loop @@ insert_pairs []
+    @@ pairs
+         (A.epsilon_closure nfa1 @@ A.start nfa1)
+         (B.epsilon_closure nfa2 @@ B.start nfa2)
 end

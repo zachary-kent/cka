@@ -32,6 +32,9 @@ module type S = sig
   val final_many : t -> States.t -> bool
   (** [final_many nfa ps] is [true] iff any state [p] of [ps] is a final state of [nfa] *)
 
+  val delta : t -> State.t -> Alphabet.t -> States.t
+  (** [delta nfa p a] are all states [q] such that [nfa] takes a transition labeled [a] from [p] to [q] *)
+
   val delta_many : t -> States.t -> Alphabet.t -> States.t
   (** [delta nfa p a] maps the transition function over every state in p *)
 
